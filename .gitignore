@@ -1,0 +1,8 @@
+firmware/*.o
+firmware/*.d
+firmware/firmware.axf
+firmware/firmware.hex
+firmware/firmware.bin
+firmware/contrib/*.so
+firmware/contrib/*.pyc
+firmware/contrib/build
