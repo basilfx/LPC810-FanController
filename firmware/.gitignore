@@ -1,0 +1,9 @@
+# Compilation of source
+*.o
+*.d
+
+# Binary output
+firmware.axf
+firmware.bin
+firmware.hex
+!bin/firmware.hex
