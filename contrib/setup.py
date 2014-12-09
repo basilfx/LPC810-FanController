@@ -4,7 +4,7 @@ from distutils.extension import Extension
 
 import os
 
-pid_dir = os.path.join(os.path.dirname(__file__), "../lib/pid")
+pid_dir = os.path.join(os.path.dirname(__file__), "../firmware/lib/pid")
 
 setup(
     ext_modules = cythonize([
