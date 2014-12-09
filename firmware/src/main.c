@@ -36,8 +36,7 @@
 #include "DS18x20.h"
 #include "pid.h"
 
-/* PWM cycle time - time of a single PWM sweep */
-#define PWMCYCLERATE (50000)
+#include "config.h"
 
 /* UART handle and memory for ROM API */
 static UART_HANDLE_T *uartHandle;
@@ -58,6 +57,8 @@ volatile uint32_t mhz = 0;
 /* DS1820 temperature sensors */
 uint8_t sensorCount = 0;
 uint8_t sensorIDs[ONE_WIRE_DEVICE_NUMBER_MAX][DS18x20_SERIAL_NUM_SIZE];
+
+extern void printf(char *format, ...);
 
 /**
  * Handle interrupt from State Configurable Timer
@@ -212,7 +213,7 @@ static void init_pwm()
     LPC_SCT->OUTPUT = (7 << 0);
 
     /* The PWM will use a cycle time of (PWMCYCLERATE)Hz based off the bus clock */
-    cycleTicks = Chip_Clock_GetSystemClockRate() / PWMCYCLERATE;
+    cycleTicks = Chip_Clock_GetSystemClockRate() / PWM_FREQUENCY;
 
     /* Setup for match mode */
     LPC_SCT->REGMODE_L = 0;
@@ -298,11 +299,10 @@ void put_string(char* s)
  */
 int main(void)
 {
-    uint8_t i, j;
     uint8_t state = 0;
 
     int32_t temperature = 0;
-    int32_t temperatureTarget = 300; // Times 10
+    int32_t temperatureTarget = TARGET_TEMPERATURE * 10;
 
     pid_data_t pid;
 
@@ -344,7 +344,7 @@ int main(void)
             delay_ms(1000);
 
             /* Fetch result */
-            uint8_t result = DS18x20_Get_Conversion_Result_by_ROM_CRC(&sensorIDs[i], &temperature);
+            uint8_t result = DS18x20_Get_Conversion_Result_by_ROM_CRC(&sensorIDs[0], &temperature);
 
             /* Advance to output state */
             if (result == ONE_WIRE_SUCCESS) {
@@ -362,9 +362,9 @@ int main(void)
             uint8_t speed = 0;
 
             /* Restrict output and set new speed. Fan won't run below 10%. */
-            if (out >= 10) {
+            if (out >= MINIMAL_FAN_SPEED) {
                 speed = (out * 100) / 128;
-            } else if (out < 10) {
+            } else {
                 speed = 0;
             }
 

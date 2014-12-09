@@ -12,7 +12,7 @@ FPU = # -mfloat-abi=soft
 FILENAME = firmware
 LINKERSCRIPT = src/firmware.ld
 
-CFLAGS+= -Os --specs=nano.specs -ffunction-sections -fdata-sections -fno-builtin -flto
+CFLAGS+= -Os --specs=nano.specs -ffunction-sections -fdata-sections -fno-builtin -flto -Wall -Wextra
 
 CC = ${CROSS}gcc
 LD = ${CROSS}ld
