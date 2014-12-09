@@ -56,9 +56,12 @@ typedef struct {
  * Needed to avoid sign/overflow problems
  */
 // Maximum value of variables
-#define MAX_I_TERM      (100 * SCALING_FACTOR)
-#define MAX_INT         (100 * SCALING_FACTOR)
-#define MAX_LONG        INT32_MAX
+#define MAX_I_TERM (100 * SCALING_FACTOR)
+#define MAX_INT    (100 * SCALING_FACTOR)
+#define MAX_LONG   INT32_MAX
+
+// Helper for defining PID values without the scaling factor
+#define PID_VALUES(x,y,z) { x * SCALING_FACTOR, y * SCALING_FACTOR, z * SCALING_FACTOR }
 
 void PID_Controller_Init(pid_data_t *pid, int16_t Kp, int16_t Ki, int16_t Kd);
 int16_t PID_Controller_Update(pid_data_t *pid, int16_t measurement, int16_t target);

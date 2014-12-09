@@ -183,23 +183,6 @@ static void init_uart()
 }
 
 /**
- * Initialize the 1-Wire protocol. Allow up to 1 second for synchronization.
- */
-static void init_1wire()
-{
-    /* Reset 1-Wire bus */
-    uint8_t attempts = 10;
-
-    while (attempts-- && One_Wire_Reset()) {
-        /* Add some delay */
-        delay_ms(100);
-    }
-
-    /* Find connected sensors */
-    DS18x20_Search_Rom(&sensorCount, &sensorIDs);
-}
-
-/**
  * Initialize the PWM mode of the SCT.
  */
 static void init_pwm()
@@ -299,12 +282,11 @@ void put_string(char* s)
  */
 int main(void)
 {
+    uint8_t i;
     uint8_t state = 0;
 
-    int32_t temperature = 0;
-    int32_t temperatureTarget = TARGET_TEMPERATURE * 10;
-
-    pid_data_t pid;
+    int32_t temperature[NUMBER_OF_SENSORS];
+    pid_data_t pid[NUMBER_OF_SENSORS];
 
     /* Initialize delays */
     init_delays();
@@ -314,67 +296,96 @@ int main(void)
 
     /* Initialize peripherals */
     init_uart();
-    printf("Starting\r\n");
-
-    init_1wire();
-    printf("Number of sensors: %n\r\n", (uint32_t) sensorCount);
-
     init_pwm();
-    printf("Target temperature: %l\r\n", temperatureTarget / 10);
 
     /* Main loop for application. */
     while (1) {
         if (state == 0) {
+            /* Reset 1-Wire bus */
+            uint8_t attempts = 10;
+
+            while (attempts-- && One_Wire_Reset()) {
+                delay_ms(100);
+            }
+
+            /* Find connected sensors */
+            DS18x20_Search_Rom(&sensorCount, &sensorIDs);
+
             /* Check for temperature sensors, otherwise go into error mode */
-            if (sensorCount == 0) {
+            printf("Found %i/%i sensors\r\n", (int16_t) sensorCount, NUMBER_OF_SENSORS);
+
+            if (sensorCount != NUMBER_OF_SENSORS) {
                 state = 128;
             } else {
                 state = 1;
             }
         } else if (state == 1) {
-            /* Setup PID controller */
-            PID_Controller_Init(&pid, 0.1 * SCALING_FACTOR, 0.1 * SCALING_FACTOR, 1.0 * SCALING_FACTOR);
+            /* Setup PID controllers */
+            for (i = 0; i < NUMBER_OF_SENSORS; i++) {
+                PID_Controller_Init(&pid[i], PID_SETTINGS[i][0], PID_SETTINGS[i][1], PID_SETTINGS[i][2]);
+            }
 
             state = 2;
         } else if (state == 2) {
-            /* Measure temperature */
-            DS18x20_Start_Conversion_by_ROM(&sensorIDs[0]);
+            /* Start reading temperature by all sensors */
+            DS18x20_Start_Conversion_Skip_Rom();
 
-            /* Wait for conversion to complete */
+            /* Wait for conversion to complete. */
             delay_ms(1000);
 
-            /* Fetch result */
-            uint8_t result = DS18x20_Get_Conversion_Result_by_ROM_CRC(&sensorIDs[0], &temperature);
+            /* Fetch results individually */
+            uint8_t success = 1;
 
-            /* Advance to output state */
-            if (result == ONE_WIRE_SUCCESS) {
-                if ((temperature / 100) < 1000) {
-                    state = 3;
+            for (i = 0; i < NUMBER_OF_SENSORS; i++) {
+                uint8_t result = DS18x20_Get_Conversion_Result_by_ROM_CRC(&sensorIDs[i], &temperature[i]);
+
+                /* Advance to output state */
+                if (result == ONE_WIRE_SUCCESS) {
+                    if ((temperature[i] / 100) > 1000) {
+                        printf("Temperature of sensor %i invalid: %n\r\n", (int16_t) i, temperature);
+                        success = 0;
+                    }
                 } else {
-                    printf("Temperature invalid: %n\r\n", temperature);
+                    printf("Reading of sensor %i failed: %i\r\n", (int16_t) i, (int16_t) result);
+                    success = 0;
                 }
-            } else {
-                printf("Reading failed: %i\r\n", (int16_t) result);
+            }
+
+            /* Advance only on success */
+            if (success) {
+                state = 3;
             }
         } else if (state == 3) {
-            /* Execute one round of PID controller */
-            int16_t out = -1 * PID_Controller_Update(&pid, temperature / 100, temperatureTarget);
-            uint8_t speed = 0;
+            /* Update PID controllers */
+            uint8_t speed[NUMBER_OF_SENSORS], maxSpeed;
 
-            /* Restrict output and set new speed. Fan won't run below 10%. */
-            if (out >= MINIMAL_FAN_SPEED) {
-                speed = (out * 100) / 128;
-            } else {
-                speed = 0;
+            for (i = 0; i < NUMBER_OF_SENSORS; i++) {
+                int16_t out = -1 * PID_Controller_Update(&pid[i], temperature[i] / 100, TEMPERATURE_SETTINGS[i]);
+
+                /* Set new speed. Fan won't run below 10%. */
+                if (out >= MINIMAL_FAN_SPEED) {
+                    speed[i] = (out * 100) / 128;
+                } else {
+                    speed[i] = 0;
+                }
+
+                /* Take max speed */
+                if (speed[i] > maxSpeed) {
+                    maxSpeed = speed[i];
+                }
+
+                /* Debugging */
+                printf("%i,%n,%n,%u,%i,", i, temperature[i] / 100, TEMPERATURE_SETTINGS[i], (uint16_t) speed[i], out);
             }
 
-            set_pwm(speed);
-
             /* Debugging */
-            printf("%n,%n,%i,%i\r\n", temperature / 100, temperatureTarget, (int16_t) speed, out);
+            printf("%u\r\n", (uint16_t) maxSpeed);
+
+            /* Set new speed */
+            set_pwm(maxSpeed);
 
             /* Advance to measurement state */
-            state = 0x02;
+            state = 2;
         } else if (state == 128) {
             /* Infinitely spin fan up and down to tell something is wrong. */
             set_pwm(100);

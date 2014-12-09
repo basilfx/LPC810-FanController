@@ -251,7 +251,7 @@ int32_t DS18x20_Convert_Temperature(uint8_t pad[DS18x20_STRATCHPAD_SIZE], uint8_
             return 0;
     }
 
-    /* Convert to Celcius */
+    /* Convert to Celsius */
     int16_t raw = (pad[1] << 8) | pad[0];
 
     if (typeS) {
