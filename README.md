@@ -11,10 +11,10 @@ Tiny PID-based fan controller board and firmware to insert between 3-pin fans.
 ### Board render
 The board measures 0.45x0.95 inch.
 
-![brd](https://raw.github.com/basilfx/LPC810-FanController/master/doc/board_top.png)
+![brd](https://raw.githubusercontent.com/basilfx/LPC810-FanController/master/docs/board_top.png)
 Board top render
 
-![brd](https://raw.github.com/basilfx/LPC810-FanController/master/doc/board_bottom.png)
+![brd](https://raw.githubusercontent.com/basilfx/LPC810-FanController/master/docs/board_bottom.png)
 Board bottom render
 
 ## Firmware
