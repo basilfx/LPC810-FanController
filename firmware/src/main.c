@@ -357,7 +357,7 @@ int main(void)
             }
         } else if (state == 3) {
             /* Update PID controllers */
-            uint8_t speed[NUMBER_OF_SENSORS], maxSpeed;
+            uint8_t speed[NUMBER_OF_SENSORS], maxSpeed = 0;
 
             for (i = 0; i < NUMBER_OF_SENSORS; i++) {
                 int16_t out = -1 * PID_Controller_Update(&pid[i], temperature[i] / 100, TEMPERATURE_SETTINGS[i]);
