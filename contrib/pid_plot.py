@@ -63,6 +63,7 @@ def main():
 
         axis.plot(times, targets, color="b", label="Target")
         axis.plot(times, temperatures, color="c", label="Temperature")
+        #axis2.plot(times, pids, color="m", label="PID Out")
         axis2.plot(times, speeds, color="y", label="Speed")
         axis2.plot(times, max_speeds, color="r", label="Max Speed")
 

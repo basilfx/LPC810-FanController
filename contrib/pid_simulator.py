@@ -9,10 +9,16 @@ class Model(object):
         self.target = target
         self.control = 0
 
-        self.heating = 0.07
+        self.heating = 2.25
+        self.steps = 0
 
     def step(self):
-        delta = self.heating - (1.7**(self.control / 10.0) - 1.0)
+        if self.control > 0:
+            self.steps += 1
+        else:
+            self.steps = 0
+
+        delta = self.heating - 2 ** (1 + max(0, self.control / 256.0))
         #delta = (self.weight / self.heating) - (self.cooling + self.control)
         self.current = self.current + delta
 
@@ -40,10 +46,11 @@ def main():
     arguments, parser = parse_arguments()
 
     # Create PID controller and model
+    print arguments.kp
     pid = cpid.PIDController(arguments.kp, arguments.ki, arguments.kd)
 
     # Create model
-    model = Model(start=25.0, target=30.0)
+    model = Model(start=250, target=300)
 
     for i in xrange(arguments.steps):
         # Update model
@@ -54,8 +61,11 @@ def main():
 
         # Limit output
         if output > 0:
-            control = output * 100 / 128
-        elif output < 10:
+            control = output * 100 / 256
+
+            if control < 10:
+                control = 0
+        else:
             control = 0
 
         # Feed into model
