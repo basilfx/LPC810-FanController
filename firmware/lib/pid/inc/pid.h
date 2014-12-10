@@ -26,7 +26,7 @@ extern "C" {
 
 #include "stdint.h"
 
-#define SCALING_FACTOR  128
+#define SCALING_FACTOR  256
 
 /*! \brief PID Status
  *
@@ -34,9 +34,9 @@ extern "C" {
  */
 typedef struct {
     //! Last process value, used to find derivative of process value.
-    int16_t lastMeasurement;
+    int16_t lastProcessValue;
     //! Summation of errors, used for integrate calculations
-    int32_t sumError;
+    int32_t lastIntegral;
 
     //! The Proportional tuning constant, multiplied with SCALING_FACTOR
     int16_t Kp;
@@ -45,20 +45,12 @@ typedef struct {
     //! The Derivative tuning constant, multiplied with SCALING_FACTOR
     int16_t Kd;
 
-    //! Maximum allowed error, avoid overflow
-    int16_t maxError;
-    /* Maximum allowed sumerror, avoid overflow */
-    int32_t maxSumError;
-} pid_data_t;
+    /* Maximum output */
+    int32_t maxOutput;
 
-/*! \brief Maximum values
- *
- * Needed to avoid sign/overflow problems
- */
-// Maximum value of variables
-#define MAX_I_TERM (100 * SCALING_FACTOR)
-#define MAX_INT    (100 * SCALING_FACTOR)
-#define MAX_LONG   INT32_MAX
+    /* Minimum output */
+    int32_t minOutput;
+} pid_data_t;
 
 // Helper for defining PID values without the scaling factor
 #define PID_VALUES(x,y,z) { x * SCALING_FACTOR, y * SCALING_FACTOR, z * SCALING_FACTOR }

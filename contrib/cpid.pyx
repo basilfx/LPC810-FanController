@@ -8,7 +8,7 @@ cdef extern from "pid.h":
         int16_t Kd;
 
     void PID_Controller_Init(pid_data_t *pid, int16_t Kp, int16_t Ki, int16_t Kd);
-    int16_t PID_Controller_Update(pid_data_t *pid, int16_t measurement, int16_t target);
+    int16_t PID_Controller_Update(pid_data_t *pid, int16_t processValue, int16_t setPoint);
     void PID_Controller_Reset(pid_data_t *pid);
 
 cdef class PIDController:
@@ -27,8 +27,8 @@ cdef class PIDController:
     def __init__(self, int16_t Kp, int16_t Ki, int16_t Kd):
         PID_Controller_Init(self._c_pid, Kp, Ki, Kd)
 
-    def update(self, int16_t measurement, int16_t target):
-        return PID_Controller_Update(self._c_pid, measurement, target)
+    def update(self, int16_t processValue, int16_t setPoint):
+        return PID_Controller_Update(self._c_pid, processValue, setPoint)
 
     def reset(self):
         PID_Controller_Reset(self._c_pid)

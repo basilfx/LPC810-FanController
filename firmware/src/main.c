@@ -195,7 +195,7 @@ static void init_pwm()
     /* Initial CTOUT0 state is high */
     LPC_SCT->OUTPUT = (7 << 0);
 
-    /* The PWM will use a cycle time of (PWMCYCLERATE)Hz based off the bus clock */
+    /* The PWM will use a cycle time of (PWM_FREQUENCY)Hz based off the bus clock */
     cycleTicks = Chip_Clock_GetSystemClockRate() / PWM_FREQUENCY;
 
     /* Setup for match mode */
@@ -362,9 +362,14 @@ int main(void)
             for (i = 0; i < NUMBER_OF_SENSORS; i++) {
                 int16_t out = -1 * PID_Controller_Update(&pid[i], temperature[i] / 100, TEMPERATURE_SETTINGS[i]);
 
-                /* Set new speed. Fan won't run below 10%. */
-                if (out >= MINIMAL_FAN_SPEED) {
-                    speed[i] = (out * 100) / 128;
+                /* Set new speed. */
+                if (out > 0) {
+                    speed[i] = ((int32_t) out) * 100 / SCALING_FACTOR;
+
+                    /* Some fans don't run below a certain speed */
+                    if (speed[i] < MINIMAL_FAN_SPEED) {
+                        speed[i] = 0;
+                    }
                 } else {
                     speed[i] = 0;
                 }

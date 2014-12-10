@@ -34,17 +34,17 @@
 void PID_Controller_Init(pid_data_t *pid, int16_t Kp, int16_t Ki, int16_t Kd)
 {
     // Start values for PID controller
-    pid->sumError = 0;
-    pid->lastMeasurement = 0;
+    pid->lastProcessValue = 0;
+    pid->lastIntegral = 0;
 
     // Tuning constants for PID loop
     pid->Kp = Kp;
     pid->Ki = Ki;
     pid->Kd = Kd;
 
-    // Limits to avoid overflow
-    pid->maxError = MAX_INT / (pid->Kp + 1);
-    pid->maxSumError = MAX_I_TERM / (pid->Ki + 1);
+    // Output limits
+    pid->maxOutput = 255 * SCALING_FACTOR;
+    pid->minOutput = -255 * SCALING_FACTOR;
 }
 
 
@@ -56,48 +56,37 @@ void PID_Controller_Init(pid_data_t *pid, int16_t Kp, int16_t Ki, int16_t Kd)
  *  \param processValue  Measured value.
  *  \param pid_st  PID status struct.
  */
-int16_t PID_Controller_Update(pid_data_t *pid, int16_t measurement, int16_t target)
+int16_t PID_Controller_Update(pid_data_t *pid, int16_t processValue, int16_t setPoint)
 {
-    int16_t error, p_term, d_term;
-    int32_t i_term, ret, temp;
+    int32_t error, result, temp;
 
-    error = target - measurement;
+    /* Compute the error */
+    error = setPoint - processValue;
 
-    // Calculate Pterm and limit error overflow
-    if (error > pid->maxError) {
-        p_term = MAX_INT;
-    } else if (error < -pid->maxError) {
-        p_term = -MAX_INT;
-    } else {
-        p_term = pid->Kp * error;
+    /* Compute integrator term. When limits are hit, stop summing. */
+    temp = pid->lastIntegral + (pid->Ki * error);
+
+    if (temp > pid->maxOutput) {
+        temp = pid->maxOutput;
+    } else if (temp < -pid->maxOutput) {
+        temp = -pid->maxOutput;
     }
 
-    // Calculate Iterm and limit integral runaway
-    temp = pid->sumError + error;
+    /* Compute the output */
+    result = (pid->Kp * error) + temp - pid->Kd * (processValue - pid->lastProcessValue);
 
-    if (temp > pid->maxSumError) {
-        i_term = MAX_I_TERM;
-        pid->sumError = pid->maxSumError;
-    } else if (temp < -pid->maxSumError) {
-        i_term = -MAX_I_TERM;
-        pid->sumError = -pid->maxSumError;
-    } else {
-        pid->sumError = temp;
-        i_term = pid->Ki * pid->sumError;
+    if (result > pid->maxOutput) {
+        result = pid->maxOutput;
+    } else if (result < -pid->maxOutput) {
+        result = -pid->maxOutput;
     }
 
-    // Calculate Dterm
-    d_term = pid->Kd * (measurement - pid->lastMeasurement);
-    pid->lastMeasurement = measurement;
-    ret = (p_term + i_term - d_term) / SCALING_FACTOR;
+    /* Store last values */
+    pid->lastProcessValue = processValue;
+    pid->lastIntegral = temp;
 
-    if (ret > MAX_INT) {
-        ret = MAX_INT;
-    } else if(ret < -MAX_INT){
-        ret = -MAX_INT;
-    }
-
-    return (int16_t) ret;
+    /* Return output */
+    return (int16_t) (result / SCALING_FACTOR);
 }
 
 /*! \brief Resets the integrator.
@@ -106,5 +95,5 @@ int16_t PID_Controller_Update(pid_data_t *pid, int16_t measurement, int16_t targ
  */
 void PID_Controller_Reset(pid_data_t* pid)
 {
-    pid->sumError = 0;
+    pid->lastIntegral = 0;
 }
