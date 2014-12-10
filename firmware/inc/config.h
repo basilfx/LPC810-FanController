@@ -11,9 +11,9 @@
 #define NUMBER_OF_SENSORS (2)
 
 /* Target temperature per sensor (C * 10) */
-const int32_t TEMPERATURE_SETTINGS[NUMBER_OF_SENSORS] = {500, 350};
+const int32_t TEMPERATURE_SETTINGS[NUMBER_OF_SENSORS] = { 350, 450 };
 
 /* PID settings per sensor (Kp, Ki, Kd) */
-const int16_t PID_SETTINGS[NUMBER_OF_SENSORS][3] = { PID_VALUES(0.1, 0.1, 0.1), PID_VALUES(0.1, 0.1, 0.1) };
+const int16_t PID_SETTINGS[NUMBER_OF_SENSORS][3] = { PID_VALUES(2, 0.5, 1.0), PID_VALUES(0.1, 0.1, 0.1) };
 
 #endif

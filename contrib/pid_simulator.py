@@ -55,15 +55,15 @@ def main():
         # Limit output
         if output > 0:
             control = output * 100 / 128
-        elif output < 25:
+        elif output < 10:
             control = 0
 
         # Feed into model
         model.control = control
 
         # Output
-        sys.stdout.write("%d,%d,%d,%d, %d\n" %
-            (i, model.current, model.target, model.control, output))
+        sys.stdout.write("%d,0,%d,%d,%d,%d,%d\n" %
+            (i, model.current, model.target, model.control, output, model.control))
 
 if __name__ == "__main__":
     sys.exit(main())
